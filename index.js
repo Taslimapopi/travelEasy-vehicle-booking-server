@@ -35,6 +35,13 @@ async function run() {
         res.send(result)
     })
 
+    app.get('/vehicles/:id',async(req,res)=>{
+        const id = req.params.id
+        const query = {_id: new ObjectId(id)}
+        const result = await vehicleCollections.findOne(query)
+        res.send(result)
+    })
+
     app.post('/vehicles',async(req,res)=>{
         const newVehicles = req.body
         const result =await vehicleCollections.insertOne(newVehicles)
@@ -45,6 +52,17 @@ async function run() {
         const id = req.params.id
         const query = {_id: new ObjectId(id)}
         const result = await vehicleCollections.deleteOne(query)
+        res.send(result)
+    })
+
+    app.put('/vehicles/:id',async(req,res)=>{
+        const id = req.params.id
+        const query = {_id: new ObjectId(id)}
+        const data = req.body
+        const updateData = {
+            $set: data
+        }
+        const result = await vehicleCollections.updateOne(query,updateData)
         res.send(result)
     })
 
