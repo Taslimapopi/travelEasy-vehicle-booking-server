@@ -25,55 +25,90 @@ app.get("/", (req, res) => {
 
 async function run() {
   try {
-    
     await client.connect();
     const db = client.db("TravelEase");
     const vehicleCollections = db.collection("vehicles");
+    const bookingsCollections = db.collection("bookings");
 
-    app.get('/vehicles',async(req,res)=>{
-        const result =await vehicleCollections.find().toArray()
-        res.send(result)
-    })
+    app.get("/vehicles", async (req, res) => {
+      const result = await vehicleCollections.find().toArray();
+      res.send(result);
+    });
 
-    app.get('/vehicles/:id',async(req,res)=>{
-        const id = req.params.id
-        const query = {_id: new ObjectId(id)}
-        const result = await vehicleCollections.findOne(query)
-        res.send(result)
-    })
+    app.get("/vehicles/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await vehicleCollections.findOne(query);
+      res.send(result);
+    });
 
-    app.post('/vehicles',async(req,res)=>{
-        const newVehicles = req.body
-        const result =await vehicleCollections.insertOne(newVehicles)
-        res.send(result)
-    })
+    app.post("/vehicles", async (req, res) => {
+      const newVehicles = req.body;
+      const result = await vehicleCollections.insertOne(newVehicles);
+      res.send(result);
+    });
 
-    app.delete('/vehicles/:id',async(req,res)=>{
-        const id = req.params.id
-        const query = {_id: new ObjectId(id)}
-        const result = await vehicleCollections.deleteOne(query)
-        res.send(result)
-    })
+    app.delete("/vehicles/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await vehicleCollections.deleteOne(query);
+      res.send(result);
+    });
 
-    app.put('/vehicles/:id',async(req,res)=>{
-        const id = req.params.id
-        const query = {_id: new ObjectId(id)}
-        const data = req.body
-        const updateData = {
-            $set: data
+    app.put("/vehicles/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const data = req.body;
+      const updateData = {
+        $set: data,
+      };
+      const result = await vehicleCollections.updateOne(query, updateData);
+      res.send(result);
+    });
+
+    app.get('/my-vehicles',async(req,res)=>{
+        const query = {}
+        const email = req.query.email;
+
+        if (email){
+            query.userEmail = email
         }
-        const result = await vehicleCollections.updateOne(query,updateData)
+        const result = await vehicleCollections.find(query).toArray()
         res.send(result)
     })
 
+    // bookings
+
+    app.get("/bookings", async (req, res) => {
+      const result = await bookingsCollections.find().toArray();
+      res.send(result);
+    });
+
+    app.get('/my-bookings',async(req,res)=>{
+        const query = {}
+        const email = req.query.email;
+
+        if (email){
+            query.email = email
+        }
+        const result = await bookingsCollections.find(query).toArray()
+        res.send(result)
+    })
+
+  
 
 
+    app.post("/bookings", async (req, res) => {
+      const newBookings = req.body;
+      const result = await bookingsCollections.insertOne(newBookings);
+      res.send(result);
+    });
 
-    
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
-    
   }
 }
 run().catch(console.dir);
