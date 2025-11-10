@@ -3,11 +3,36 @@ const cors = require("cors");
 require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
+const admin = require("firebase-admin");
 const port = process.env.PORT || 3000;
+
+const serviceAccount = require("./traveleasy-firebase-service-key.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+
+
+
 
 // middleware
 app.use(cors());
 app.use(express.json());
+
+const verifyFirebaseToken = (req,res,next) =>{
+  
+  if(!req.headers.authorization){
+    return res.status(401).send({message: 'unauthorized access'})
+  }
+  const token = req.headers.authorization.split(' ')[1]
+  console.log(token)
+  if(!token){
+    return res.status(401).send({message: 'unauthorized access'})
+  }
+  // 
+  next()
+}
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.rgrxfrw.mongodb.net/?appName=Cluster0`;
 
@@ -31,9 +56,15 @@ async function run() {
     const bookingsCollections = db.collection("bookings");
 
     app.get("/vehicles", async (req, res) => {
-      const result = await vehicleCollections.find().toArray();
+      const result = await vehicleCollections.find().sort({createdAt:1}).limit(6).toArray();
       res.send(result);
     });
+
+    app.get('/all-vehicles',async(req,res)=>{
+      const result = await vehicleCollections.find().toArray()
+      res.send(result)
+    })
+
 
     app.get("/vehicles/:id", async (req, res) => {
       const id = req.params.id;
@@ -84,7 +115,8 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/my-bookings',async(req,res)=>{
+    app.get('/my-bookings',verifyFirebaseToken ,async(req,res)=>{
+      
         const query = {}
         const email = req.query.email;
 

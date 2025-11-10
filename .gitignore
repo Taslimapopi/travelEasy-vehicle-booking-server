@@ -1,3 +1,5 @@
 node_modules
 
 .env
+
+traveleasy-firebase-service-key.json
