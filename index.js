@@ -6,7 +6,12 @@ const app = express();
 const admin = require("firebase-admin");
 const port = process.env.PORT || 3000;
 
-const serviceAccount = require("./traveleasy-firebase-service-key.json");
+// index.js
+const decoded = Buffer.from(
+  process.env.FIREBASE_SERVICE_KEY,
+  "base64"
+).toString("utf8");
+const serviceAccount = JSON.parse(decoded);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -22,15 +27,13 @@ const verifyFirebaseToken = async (req, res, next) => {
   }
   const token = req.headers.authorization.split(" ")[1];
 
-  
-
   if (!token) {
     return res.status(401).send({ message: "unauthorized access" });
   }
   //
   try {
     const userInfo = await admin.auth().verifyIdToken(token);
-    req.token_email = userInfo.email
+    req.token_email = userInfo.email;
     // console.log("after firebase validation", userInfo);
     next();
   } catch {
@@ -49,7 +52,7 @@ const client = new MongoClient(uri, {
 });
 
 app.get("/", (req, res) => {
-  res.send("smart deal is running");
+  res.send("TravelEase is running");
 });
 
 async function run() {
@@ -68,19 +71,39 @@ async function run() {
       res.send(result);
     });
 
+    // app.get("/all-vehicles", async (req, res) => {
+    //   const result = await vehicleCollections.find().toArray();
+    //   res.send(result);
+    // });
+
     app.get("/all-vehicles", async (req, res) => {
-      const result = await vehicleCollections.find().toArray();
-      res.send(result);
+      try {
+        const sortOrder = req.query.sort;
+        let sortOption = {};
+        if (sortOrder === "asc") {
+          sortOption = { pricePerDay: 1 };
+        } else if (sortOrder === "dsc") {
+          sortOption = { pricePerDay: -1 };
+        }
+
+        const vehicles = await vehicleCollections
+          .find()
+          .sort(sortOption)
+          .toArray();
+        res.send(vehicles);
+      } catch (error) {
+        res.status(500).send({ message: "Server error", error });
+      }
     });
 
-    app.get("/vehicles/:id", async (req, res) => {
+    app.get("/vehicles/:id", verifyFirebaseToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await vehicleCollections.findOne(query);
       res.send(result);
     });
 
-    app.post("/vehicles", async (req, res) => {
+    app.post("/vehicles", verifyFirebaseToken, async (req, res) => {
       const newVehicles = req.body;
       const result = await vehicleCollections.insertOne(newVehicles);
       res.send(result);
@@ -93,7 +116,7 @@ async function run() {
       res.send(result);
     });
 
-    app.put("/vehicles/:id", async (req, res) => {
+    app.put("/vehicles/:id", verifyFirebaseToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const data = req.body;
@@ -104,11 +127,14 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/my-vehicles", async (req, res) => {
+    app.get("/my-vehicles", verifyFirebaseToken, async (req, res) => {
       const query = {};
       const email = req.query.email;
 
       if (email) {
+        if (email !== req.token_email) {
+          return res.status(403).send({ message: "forbidden" });
+        }
         query.userEmail = email;
       }
       const result = await vehicleCollections.find(query).toArray();
@@ -149,7 +175,7 @@ async function run() {
       res.send(result);
     });
 
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
