@@ -55,9 +55,8 @@ app.get("/", (req, res) => {
   res.send("TravelEase is running");
 });
 
-async function run() {
-  try {
-    await client.connect();
+
+    // await client.connect();
     const db = client.db("TravelEase");
     const vehicleCollections = db.collection("vehicles");
     const bookingsCollections = db.collection("bookings");
@@ -179,10 +178,7 @@ async function run() {
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
-  } finally {
-  }
-}
-run().catch(console.dir);
+
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
