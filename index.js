@@ -96,14 +96,14 @@ async function run() {
       }
     });
 
-    app.get("/vehicles/:id", verifyFirebaseToken, async (req, res) => {
+    app.get("/vehicles/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await vehicleCollections.findOne(query);
       res.send(result);
     });
 
-    app.post("/vehicles", verifyFirebaseToken, async (req, res) => {
+    app.post("/vehicles", async (req, res) => {
       const newVehicles = req.body;
       const result = await vehicleCollections.insertOne(newVehicles);
       res.send(result);
@@ -116,7 +116,7 @@ async function run() {
       res.send(result);
     });
 
-    app.put("/vehicles/:id", verifyFirebaseToken, async (req, res) => {
+    app.put("/vehicles/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const data = req.body;
