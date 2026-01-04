@@ -55,130 +55,144 @@ app.get("/", (req, res) => {
   res.send("TravelEase is running");
 });
 
+// await client.connect();
+const db = client.db("TravelEase");
+const vehicleCollections = db.collection("vehicles");
+const bookingsCollections = db.collection("bookings");
 
-    // await client.connect();
-    const db = client.db("TravelEase");
-    const vehicleCollections = db.collection("vehicles");
-    const bookingsCollections = db.collection("bookings");
+app.get("/vehicles", async (req, res) => {
+  const result = await vehicleCollections
+    .find()
+    .sort({ createdAt: 1 })
+    .limit(8)
+    .toArray();
+  res.send(result);
+});
 
-    app.get("/vehicles", async (req, res) => {
-      const result = await vehicleCollections
-        .find()
-        .sort({ createdAt: 1 })
-        .limit(6)
-        .toArray();
-      res.send(result);
-    });
+// app.get("/all-vehicles", async (req, res) => {
+//   const result = await vehicleCollections.find().toArray();
+//   res.send(result);
+// });
 
-    // app.get("/all-vehicles", async (req, res) => {
-    //   const result = await vehicleCollections.find().toArray();
-    //   res.send(result);
-    // });
+app.get("/all-vehicles", async (req, res) => {
+  try {
+    const sortOrder = req.query.sort;
+    let sortOption = {};
+    if (sortOrder === "asc") {
+      sortOption = { pricePerDay: 1 };
+    } else if (sortOrder === "dsc") {
+      sortOption = { pricePerDay: -1 };
+    }
 
-    app.get("/all-vehicles", async (req, res) => {
-      try {
-        const sortOrder = req.query.sort;
-        let sortOption = {};
-        if (sortOrder === "asc") {
-          sortOption = { pricePerDay: 1 };
-        } else if (sortOrder === "dsc") {
-          sortOption = { pricePerDay: -1 };
-        }
+    const vehicles = await vehicleCollections.find().sort(sortOption).toArray();
+    res.send(vehicles);
+  } catch (error) {
+    res.status(500).send({ message: "Server error", error });
+  }
+});
 
-        const vehicles = await vehicleCollections
-          .find()
-          .sort(sortOption)
-          .toArray();
-        res.send(vehicles);
-      } catch (error) {
-        res.status(500).send({ message: "Server error", error });
-      }
-    });
+app.get("/vehicles/:id", async (req, res) => {
+  const id = req.params.id;
+  const query = { _id: new ObjectId(id) };
+  const result = await vehicleCollections.findOne(query);
+  res.send(result);
+});
 
-    app.get("/vehicles/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await vehicleCollections.findOne(query);
-      res.send(result);
-    });
+app.post("/vehicles", async (req, res) => {
+  const newVehicles = req.body;
+  const result = await vehicleCollections.insertOne(newVehicles);
+  res.send(result);
+});
 
-    app.post("/vehicles", async (req, res) => {
-      const newVehicles = req.body;
-      const result = await vehicleCollections.insertOne(newVehicles);
-      res.send(result);
-    });
+app.delete("/vehicles/:id", async (req, res) => {
+  const id = req.params.id;
+  const query = { _id: new ObjectId(id) };
+  const result = await vehicleCollections.deleteOne(query);
+  res.send(result);
+});
 
-    app.delete("/vehicles/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await vehicleCollections.deleteOne(query);
-      res.send(result);
-    });
+app.put("/vehicles/:id", async (req, res) => {
+  const id = req.params.id;
+  const query = { _id: new ObjectId(id) };
+  const data = req.body;
+  const updateData = {
+    $set: data,
+  };
+  const result = await vehicleCollections.updateOne(query, updateData);
+  res.send(result);
+});
 
-    app.put("/vehicles/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const data = req.body;
-      const updateData = {
-        $set: data,
-      };
-      const result = await vehicleCollections.updateOne(query, updateData);
-      res.send(result);
-    });
+app.get("/my-vehicles", verifyFirebaseToken, async (req, res) => {
+  const query = {};
+  const email = req.query.email;
 
-    app.get("/my-vehicles", verifyFirebaseToken, async (req, res) => {
-      const query = {};
-      const email = req.query.email;
+  if (email) {
+    if (email !== req.token_email) {
+      return res.status(403).send({ message: "forbidden" });
+    }
+    query.userEmail = email;
+  }
+  const result = await vehicleCollections.find(query).toArray();
+  res.send(result);
+});
 
-      if (email) {
-        if (email !== req.token_email) {
-          return res.status(403).send({ message: "forbidden" });
-        }
-        query.userEmail = email;
-      }
-      const result = await vehicleCollections.find(query).toArray();
-      res.send(result);
-    });
+// bookings
 
-    // bookings
+app.get("/bookings", async (req, res) => {
+  const result = await bookingsCollections.find().toArray();
+  res.send(result);
+});
 
-    app.get("/bookings", async (req, res) => {
-      const result = await bookingsCollections.find().toArray();
-      res.send(result);
-    });
+app.get("/my-bookings", verifyFirebaseToken, async (req, res) => {
+  const query = {};
+  const email = req.query.email;
 
-    app.get("/my-bookings", verifyFirebaseToken, async (req, res) => {
-      const query = {};
-      const email = req.query.email;
+  if (email) {
+    if (email !== req.token_email) {
+      return res.status(403).send({ message: "forbidden" });
+    }
+    query.email = email;
+  }
+  const result = await bookingsCollections.find(query).toArray();
+  res.send(result);
+});
 
-      if (email) {
-        if (email !== req.token_email) {
-          return res.status(403).send({ message: "forbidden" });
-        }
-        query.email = email;
-      }
-      const result = await bookingsCollections.find(query).toArray();
-      res.send(result);
-    });
+app.post("/bookings", async (req, res) => {
+  const newBookings = req.body;
+  const result = await bookingsCollections.insertOne(newBookings);
+  res.send(result);
+});
 
-    app.post("/bookings", async (req, res) => {
-      const newBookings = req.body;
-      const result = await bookingsCollections.insertOne(newBookings);
-      res.send(result);
-    });
+app.delete("/bookings/:id", async (req, res) => {
+  const id = req.params.id;
+  const query = { _id: new ObjectId(id) };
+  const result = await bookingsCollections.deleteOne(query);
+  res.send(result);
+});
 
-    app.delete("/bookings/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await bookingsCollections.deleteOne(query);
-      res.send(result);
-    });
+app.get("/dashboard-stats",  async (req, res) => {
+  const email = req.query.email;
 
-    // await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+  if (!email) {
+    return res.status(403).send({ message: "forbidden" });
+  }
 
+  const vehicles = await vehicleCollections.countDocuments({
+    userEmail: email,
+  });J
+
+  const bookings = await bookingsCollections.countDocuments({
+    email,
+  });
+
+  res.send({
+    vehicles,
+    bookings,
+  });
+});
+
+// await client.db("admin").command({ ping: 1 });
+console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
